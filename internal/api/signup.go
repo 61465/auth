@@ -285,6 +285,27 @@ func (a *API) Signup(w http.ResponseWriter, r *http.Request) error {
 				}); terr != nil {
 					return terr
 				}
+				// Repeat sign-up on a confirmed account: the public
+				// response must stay identical to a new signup so we
+				// never leak account existence. Trigger a recovery
+				// mail out-of-band so the real owner can act instead
+				// of waiting for a confirmation that will never
+				// arrive. Rate limiting is enforced inside
+				// sendPasswordRecovery via SMTP.MaxFrequency; its
+				// error is intentionally swallowed because surfacing
+				// it would leak existence via response differences.
+				if config.Mailer.SecureSignupNotifyEnabled &&
+					params.Provider == EmailProvider &&
+					user.IsConfirmed() {
+					if terr := a.sendPasswordRecovery(r, tx, user, flowType); terr == nil {
+						if terr := models.NewAuditLogEntry(config.AuditLog, r, tx, user, models.UserRecoveryRequestedAction, "", map[string]interface{}{
+							"provider": params.Provider,
+							"trigger":  "repeated_signup",
+						}); terr != nil {
+							return terr
+						}
+					}
+				}
 				return nil
 			})
 			if err != nil {

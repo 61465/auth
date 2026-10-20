@@ -680,6 +680,16 @@ type MailerConfiguration struct {
 
 	SecureEmailChangeEnabled bool `json:"secure_email_change_enabled" split_words:"true" default:"true"`
 
+	// SecureSignupNotifyEnabled, when true, triggers a password-recovery
+	// email on repeated sign-up attempts targeting an already-confirmed
+	// account. The sign-up response is unchanged so account existence is
+	// not revealed on any public endpoint; the real account owner is
+	// notified out-of-band and can click the recovery link if they
+	// forgot they had already registered. Rate limiting on recovery
+	// mail is enforced by the existing SMTP.MaxFrequency guard, so the
+	// repeat-signup path cannot be used to flood a victim's inbox.
+	SecureSignupNotifyEnabled bool `json:"secure_signup_notify_enabled" split_words:"true" default:"true"`
+
 	OtpExp    uint `json:"otp_exp" split_words:"true"`
 	OtpLength int  `json:"otp_length" split_words:"true"`
 
